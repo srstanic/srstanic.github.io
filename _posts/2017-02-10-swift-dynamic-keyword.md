@@ -166,15 +166,6 @@ extension Shape {
 Why does that happen? Extension methods use static dispatch, so they can't be overridden. By adding `dynamic` to their declaration we force them to use message dispatch which allows overriding.
 
 
-
-Computer Science 101
---------------------
-
-Programmers write code in high level programming languages (e.g. Swift, Objective-C) that are easy to understand for people but overly complex for computers. So the high level code is translated into a much more simple machine code, through a process called compilation. That process consists of multiple steps and each step results with a lower level code.
-
-When a program is executed, the program code is read from the memory and executed instruction by instruction. If a given instruction stands for a method call, it needs to be determined where the code for that function is located in the memory and read the code to be executed from that location. Depending on the method dispatch type, this process of finding the correct memory location can take more or less time, thus affecting the overall program performance.
-
-
 References
 ----------
 * https://krakendev.io/blog/hipster-swift
