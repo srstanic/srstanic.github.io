@@ -5,7 +5,7 @@ categories: ios swift
 ---
 
 
-`dynamic` is a declaration modifier that you can apply to either function or variable declarations. It can be used within a class only and it tells the run time to use dynamic dispatch over static dispatch.
+`dynamic` is a declaration modifier that you can apply to either function or variable declarations. It can be used within a class only and it tells the compiler to use dynamic dispatch over static dispatch.
 
 
 dynamic vs static dispatch
@@ -40,7 +40,7 @@ p.draw()
 
 `Point` is a class that doesn't inherit any other class nor there is a class that inherits from it. Compiler knows that there is only one implementation of the `draw()` method. Whenever `draw()` is called on a `Point` instance, compiler always references the same memory location where the code of that method is stored.
 
-Now, let's say that we have a generic `Shape` class and two classes that represent specific implementations of it - `Line` and `Circle`:
+Now, let's say that we have a generic `Shape` class and two classes that represent specific implementations of it, `Line` and `Circle`:
 
 ```swift
 class Shape {
@@ -67,7 +67,7 @@ for shape in shapes {
 }
 ```
 
-In this example direct dispatch can't be used when `draw()` is called. The compiler doesn't know in advance which of the three `draw()` implementations to point to because shape may be of different type in each iteration. So we need to use one of the other two dispatch types.
+In this example direct dispatch can't be used when `draw()` is called. The compiler doesn't know in advance which of the three `draw()` implementations to point to because `shape` may be of different type in each iteration. So we need to use one of the other two dispatch types.
 
 With a **table dispatch**, there is a lookup table of method pointers for each class in the class hierarchy - `Shape`, `Line` and `Circle`. Each table contains pointers for all methods in that class, including those that a class inherits from the parent classes. At the point of a method call, the program goes to the lookup table for the given class and finds the method pointer in it. That happens in run time.
 
@@ -105,10 +105,10 @@ Compiler optimizations
 **[Inlining](http://www.compileroptimizations.com/category/function_inlining.htm)** is a compiler optimization tactic which replaces a direct method call with the method code inline.
 
 
-Great, now tell me about dynamic dispatch!
-------------------------------------------
+Great, now will you finally tell me about dynamic dispatch?
+-----------------------------------------------------------
 
-Well, you will see both virtual dispatch and message dispatch referred to as dynamic dispatch. And although they are different mechanism, they both are dynamic. But besides them being different mechanisms with different strengths and weaknesses, there is one other important distinction. Table dispatch is a part of pure Swift, while message dispatch is only supported in the Cocoa environments. The [Objective-C runtime library](https://novemberfive.co/blog/objective-c-runtime/) is actually the one providing the message dispatch mechanism.
+Well, you will see both virtual dispatch and message dispatch referred to as dynamic dispatch. And although they are different mechanisms, they both are dynamic. But besides them being different mechanisms with different strengths and weaknesses, there is one other important distinction. Table dispatch is a part of pure Swift, while message dispatch is only supported in the Cocoa environments. The [Objective-C runtime library](https://novemberfive.co/blog/objective-c-runtime/) is actually the one providing the message dispatch mechanism.
 
 That finally brings us to the strength of the message dispatch. Since there is only one reference to one given method or property it can be safely and easily modified at run time. And Objective-C runtime provides tools to do it. These tools are the basis of cool dynamic features like KVC, KVO and UIAppearance.
 
@@ -126,7 +126,7 @@ Anything else?
 
 Let's modify the previous example:
 
-```Swift
+```swift
 class Shape {
     func draw() {
         // default draw implementation
@@ -144,7 +144,7 @@ class Line: Shape {
     override func draw() {
         // line implementation
     }
-    override func redraw() {
+    override func redraw() { // Compiler error: Declarations from extensions cannot be overridden yet
         //
     }
 }
@@ -152,10 +152,10 @@ class Line: Shape {
 
 We have moved the `redraw()` method to the class extension. But now if we want to override it in the subclass, the compiler will show an error. We can work around that by adding `dynamic` keyword to the `redraw()` declaration in the extension.
 
-```Swift
+```swift
 //...
 extension Shape {
-    **dynamic** func redraw() {
+    dynamic func redraw() {
         // clean up code
         self.draw()
     }
@@ -163,7 +163,7 @@ extension Shape {
 //...
 ```
 
-Why does that happen? Extension methods use static dispatch, so they can't be overridden. By adding `dynamic` to their declaration we force them to use message dispatch which allows overriding.
+How does that make sense? Extension methods use static dispatch, so they can't be overridden. By adding `dynamic` to their declaration we force them to use message dispatch which allows overriding.
 
 
 References
