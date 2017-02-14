@@ -2,7 +2,6 @@
 layout: post
 title:  "[swift] Dynamic keyword"
 categories: swift ios
-
 ---
 
 
@@ -181,12 +180,12 @@ References
 * https://krakendev.io/blog/hipster-swift
 * https://www.raizlabs.com/dev/2016/12/swift-method-dispatch/
 * https://cocoacasts.com/what-does-the-dynamic-keyword-mean-in-swift-3/
+* https://developer.apple.com/library/prerelease/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithObjective-CAPIs.html#//apple_ref/doc/uid/TP40014216-CH4-ID57
+* https://developer.apple.com/library/prerelease/content/documentation/Swift/Conceptual/Swift_Programming_Language/Declarations.html#//apple_ref/doc/uid/TP40014097-CH34-ID351
+* https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001707.html
+* http://cocoasamurai.blogspot.hr/2010/01/understanding-objective-c-runtime.html
 * https://blogs.unity3d.com/2016/07/26/il2cpp-optimizations-devirtualization/
 * https://en.wikipedia.org/wiki/LLVM#Intermediate_representation
 * https://www.quora.com/Swift-can-be-compiled-with-the-LLVM-which-generates-Objective-C-code-out-of-it-and-then-Objective-C-will-be-compiled-to-machine-code-or-how-does-it-work/answer/Andrea-Ferro
 * https://www.infoq.com/articles/swift-objc-runtime-programming
 * https://developer.apple.com/swift/blog/?id=27
-* https://developer.apple.com/library/prerelease/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithObjective-CAPIs.html#//apple_ref/doc/uid/TP40014216-CH4-ID57
-* https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001707.html
-* https://realm.io/news/real-world-swift-performance/
-* http://cocoasamurai.blogspot.hr/2010/01/understanding-objective-c-runtime.html
