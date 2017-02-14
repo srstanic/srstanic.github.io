@@ -5,10 +5,10 @@ categories: ios swift
 ---
 
 
-`dynamic` is a declaration modifier that you can apply to either function or variable declarations. It can be used within a class only and it tells the compiler to use dynamic dispatch over static dispatch.
+`dynamic` is a declaration modifier that you can apply to either function or variable declarations. It can only be used within a class and it tells the compiler to use dynamic dispatch over static dispatch.
 
 
-dynamic vs static dispatch
+Dynamic vs static dispatch
 --------------------------
 
 As Swift allows a class to override methods and properties declared in its superclasses, this means that the program has to determine at run time which method or property is being referenced and then perform an indirect call or indirect access. This technique is called dynamic dispatch and is applicable to types that support inheritance - classes. Value types like structs and enums cannot be extended through inheritance so they use static dispatch only.
@@ -38,7 +38,7 @@ let p = Point()
 p.draw()
 ```
 
-`Point` is a class that doesn't inherit any other class nor there is a class that inherits from it. Compiler knows that there is only one implementation of the `draw()` method. Whenever `draw()` is called on a `Point` instance, compiler always references the same memory location where the code of that method is stored.
+`Point` is a class that doesn't inherit any other class nor is there a class that inherits from it. Compiler knows that there is only one implementation of the `draw()` method. Whenever `draw()` is called on a `Point` instance, compiler always references the same memory location where the code of that method is stored.
 
 Now, let's say that we have a generic `Shape` class and two classes that represent specific implementations of it, `Line` and `Circle`:
 
@@ -67,7 +67,7 @@ for shape in shapes {
 }
 ```
 
-In this example direct dispatch can't be used when `draw()` is called. The compiler doesn't know in advance which of the three `draw()` implementations to point to because `shape` may be of different type in each iteration. So we need to use one of the other two dispatch types.
+In this example, direct dispatch can't be used when `draw()` is called. The compiler doesn't know in advance which of the three `draw()` implementations to point to because `shape` may be of different type in each iteration. So we need to use one of the other two dispatch types.
 
 With a **table dispatch**, there is a lookup table of method pointers for each class in the class hierarchy - `Shape`, `Line` and `Circle`. Each table contains pointers for all methods in that class, including those that a class inherits from the parent classes. At the point of a method call, the program goes to the lookup table for the given class and finds the method pointer in it. That happens in run time.
 
@@ -91,14 +91,14 @@ for shape in shapes {
 
 That method is inherited but not overridden in the `Line` and `Circle` classes. With table dispatch, the lookup table for each of the three classes, `Shape`, `Line` and `Circle`, will have a copy of the reference to the `redraw()` method from the `Shape` class.
 
-But with a **message dispatch**, there are no lookup tables. When the `redraw()` method is invoked, the program starts from the given class and then iterates the class hierarchy to find which class has the specified method implemented. For example, if an instance of the `Line` is in the array, program will check if there is a `redraw()` method in the `Line` class, since it isn't, it will move up to the `Shape` class and find it there.
+But with a **message dispatch**, there are no lookup tables. When the `redraw()` method is invoked, the program starts from the given class and then iterates the class hierarchy to find which class has the specified method implemented. For example, if an instance of the `Line` is in the array, the program will check if there is a `redraw()` method in the `Line` class - since there isn't one, it will move up to the `Shape` class and find it there.
 
 Now, before we discuss the dynamic dispatch, let's briefly mention the compiler optimizations first.
 
 Compiler optimizations
 ----------------------
 
-[Swift compiler](https://swift.org/compiler-stdlib/#compiler-architecture) translates code from a human friendly form into a machine friendly form and in the process it tries to optimize it to make it run faster. In the context of method dispatch, it will favor faster types over the slower. If the compiler can be sure at compile time that a particular method is going to be referenced, he might devirtualize it or even inline it.
+[Swift compiler](https://swift.org/compiler-stdlib/#compiler-architecture) translates code from a human-friendly form into a machine-friendly form and in the process tries to optimize it to make it run faster. In the context of method dispatch, it will favor faster types over the slower. If the compiler can be sure at compile time that a particular method is going to be referenced, he might devirtualize it or even inline it.
 
 **[Devirtualization](https://blogs.unity3d.com/2016/07/26/il2cpp-optimizations-devirtualization/)** is a common compiler optimization tactic which changes a virtual method call into a direct method call.
 
@@ -122,7 +122,7 @@ Pure Swift classes don't normally use message dispatch and while classes derived
 Anything else?
 --------------
 
-`dynamic` can also be used on methods declared in class extensions to allow to override them.
+`dynamic` can also be used on methods declared in class extensions to allow overriding them.
 
 Let's modify the previous example:
 
@@ -150,7 +150,7 @@ class Line: Shape {
 }
 ```
 
-We have moved the `redraw()` method to the class extension. But now if we want to override it in the subclass, the compiler will show an error. We can work around that by adding `dynamic` keyword to the `redraw()` declaration in the extension.
+We have moved the `redraw()` method to the class extension. But now, if we want to override it in the subclass, the compiler will show an error. We can work around that by adding `dynamic` keyword to the `redraw()` declaration in the extension.
 
 ```swift
 //...
