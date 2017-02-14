@@ -1,5 +1,5 @@
 # Site settings
-title: Today I learned...
+title: Learning something new every day
 baseurl: "" # begin with /repo-name if use as project, else leave empty for gh-pages
 url: "" # default is empty
 
