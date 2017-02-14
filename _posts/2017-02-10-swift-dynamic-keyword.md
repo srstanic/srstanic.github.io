@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "[swift] Dynamic keyword"
-categories: swift ios
+categories: ios swift
 ---
 
 
