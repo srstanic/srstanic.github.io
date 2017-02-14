@@ -2,3 +2,16 @@ theme: jekyll-theme-tactile
 title: Today I learned...
 description: Most likely something related to iOS or web development 
 show_downloads: false
+defaults:
+  -
+    scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  -
+    scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
