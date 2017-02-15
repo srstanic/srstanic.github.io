@@ -28,7 +28,7 @@ There are [more thorough explanations](https://www.raizlabs.com/dev/2016/12/swif
 With a **direct dispatch**, there is a direct reference to the memory location where the method code is stored and that reference never changes in the run time. In the following example:
 
 ```swift
-class Point {
+final class Point {
   func draw() {
     // draw implementation
   }
@@ -38,7 +38,7 @@ let p = Point()
 p.draw()
 ```
 
-`Point` is a class that doesn't inherit any other class nor is there a class that inherits from it. Compiler knows that there is only one implementation of the `draw()` method. Whenever `draw()` is called on a `Point` instance, compiler always references the same memory location where the code of that method is stored.
+`Point` is a class that doesn't inherit from any other class and it's final so no other class can inherit from it. Compiler knows that there is only one implementation of the `draw()` method. Whenever `draw()` is called on a `Point` instance, compiler always references the same memory location where the code of that method is stored.
 
 Now, let's say that we have a generic `Shape` class and two classes that represent specific implementations of it, `Line` and `Circle`:
 
@@ -164,6 +164,10 @@ extension Shape {
 ```
 
 How does that make sense? Extension methods use static dispatch, so they can't be overridden. By adding `dynamic` to their declaration we force them to use message dispatch which allows overriding.
+
+
+
+<i>Thanks to [Srđan Rašić](https://github.com/srdanrasic) for reviewing this post.</i>
 
 
 References
