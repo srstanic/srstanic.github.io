@@ -166,8 +166,7 @@ extension Shape {
 How does that make sense? Extension methods use static dispatch, so they can't be overridden. By adding `dynamic` to their declaration we force them to use message dispatch which allows overriding.
 
 
-
-<i>Thanks to [Srđan Rašić](https://github.com/srdanrasic) for reviewing this post.</i>
+_Thanks to [Srđan Rašić](https://github.com/srdanrasic) for reviewing this post._
 
 
 References
