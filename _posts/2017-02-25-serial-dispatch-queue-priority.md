@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[ios] How to create a serial queue with specified priority?"
+title:  "[swift] How to create a serial queue with specified priority?"
 categories: ios swift gcd
 ---
 
