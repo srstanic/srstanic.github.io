@@ -2,12 +2,11 @@
 layout: post
 title:  "[swift] Rounded border button"
 categories: ios swift uibutton
-published: false
 ---
 
 Buttons can sometimes be difficult to distinguish from labels in the iOS interfaces with a lot of text. One way to make a button more noticeable is to add a border with a rounded corner to a UIButton view.
 
-![Rounded Border Buttons]({{ site.url }}/assets/RoundedBorderButtonDemo.gif)
+<img src="{{ site.url }}/assets/RoundedBorderButtonDemo.gif" style="max-width:720px" title="Rounded Border Buttons">
 
 Here is a complete RoundedBorderButton class you can use to achieve the same effect:
 
