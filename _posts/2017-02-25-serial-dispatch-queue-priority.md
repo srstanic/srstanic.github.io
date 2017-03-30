@@ -9,7 +9,7 @@ To create a serial queue, normally you would write something simple like this:
 `let queue = DispatchQueue(label: “com.mydomain.myqueue")`
 
 If you wanted to define a priority for that queue, you could have done that by [retrieving a global queue of the required priority and setting it as a target](http://stackoverflow.com/a/17690878/517865). But that’s the old way to do it and [it doesn’t work in Swift 3](https://bugs.swift.org/browse/SR-1859).
-Since Swift 3, once a dispatch queue is activated, it cannot be mutated anymore. Setting a target on an activated queue will compile but then throw an error in runtime.
+Since Swift 3, once a dispatch queue is activated, it cannot be mutated anymore. Setting a target on an activated queue will compile but then throw an error in run time.
 
 Fortunately, `DispatchQueue` initializer accepts other arguments besides `label` and one of them is `qos`.
 
