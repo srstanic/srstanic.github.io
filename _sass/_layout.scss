@@ -3,8 +3,6 @@
  */
 .site-header {
     border-bottom: 1px solid $grey-color-light;
-    margin-top: -2rem;
-    max-width: 48rem;
 }
 
 .smallcap {
@@ -24,8 +22,9 @@
 .page-content {
     position: relative;
     padding: $spacing-unit ($spacing-unit * 0.75);
-    margin: 1rem;
     box-sizing: border-box;
+    overflow-wrap: break-word;
+    overflow: hidden;
 }
 /**
  * Pages

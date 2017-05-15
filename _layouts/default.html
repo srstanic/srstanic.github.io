@@ -2,8 +2,12 @@
 <html>
   {% include head.html %}
   <body>
-    <div class="page-content">
-      {{ content }}
+    <div class="page-content container">
+      <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+          {{ content }}
+        </div>
+      </div>
     </div>
     {% include google_analytics.html %}
   </body>
