@@ -4,8 +4,7 @@ title:  "[firebase] How to paginate and filter sorted lists in the firebase real
 categories: firebase database
 ---
 
-Let's say you are building an app for the secret service. One of the requirements is to have a list of agents sorted by
-the timezone they are currently operating in. So you might have a list of agent objects in the Firebase Database:
+Let's say you are building an app for the secret service. One of the requirements is to have a list of agents sorted by the timezone they are currently operating in. So you might have a list of agent objects in the Firebase Database:
 
 ```json
 {
@@ -37,11 +36,14 @@ the timezone they are currently operating in. So you might have a list of agent 
 
 Each agent object has a property named `timezone_gmt_offset` with a signed number value representing the GMT offset.
 
-Out of the box, Firebase Realtime Database offers a couple of ways to sort and paginate object lists. These [two](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d) [articles](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca) cover the basics of querying and pagination pretty well. I suggest you go read them if you are just starting out with the Firebase Realtime Database.
+Out of the box, Firebase Realtime Database offers a couple of ways to sort and paginate object lists. These [two](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d) [articles](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca) cover the basics of querying and pagination pretty well. I suggest you go read them if you are just starting out with the Firebase Realtime Database and then come back.
+
+Pagination
+----------
 
 Now, let's assume that for the efficiency reasons we decided to implement the cursor based pagination. Here is how we would go about implementing it.
 
-We would use `orderByChild` to specify the sorting and the `timezone_gmt_offset` property to sort the agents by the timezone they are operating in. To limit the results to a desired page size, we would use `limitToFirst`. When retrieving a first page, we would get N+1 items, where N is the size of the page. For this example, we will make the page size to be 4. That means we get 5 items:
+We would use `orderByChild` to specify the sorting and the `timezone_gmt_offset` property to sort the agents by the timezone they are operating in. To limit the results to a desired page size, we would use `limitToFirst`. When retrieving a first page, we would get N+1 items, where N is the size of the page. For our examples, we will make the page size to be 4. That means we want to retrieve 5 items:
 
 ```javascript
 firebase.database()
@@ -56,31 +58,31 @@ A resulting snapshot might look like the following JSON snippet:
 
 ```json
 {
-  "-KwFKidp8zEQH7yOT-nI": {
-    "name": "Umeko Piche",
-    "timezone_gmt_offset":-4,
-    "timezone_id":"America/Toronto"
-  },
-  "-KwFKidnpXvgxrVYgO9z": {
-    "name": "Eveline Klaffs",
-    "timezone_gmt_offset":-3,
-    "timezone_id":"America/Sao_Paulo"
-  },
-  "-KwFKidh4OKGlt8nak4A": {
-    "name": "Robbert Ridger",
-    "timezone_gmt_offset":0,
-    "timezone_id":"Africa/Abidjan"
-  },
-  "-KwFKidms27MFp6xZ6HV": {
-    "name": "Tiphany Broader",
-    "timezone_gmt_offset":1,
-    "timezone_id":"Africa/Lagos"
-  },
-  "-KwFKidwW6ZCE7Yebfpj": {
-    "name": "Tabbie Borg",
-    "timezone_gmt_offset":2,
-    "timezone_id":"Europe/Bratislava"
-  }
+    "-KwFKidp8zEQH7yOT-nI": {
+        "name": "Umeko Piche",
+        "timezone_gmt_offset": -4,
+        ...
+    },
+    "-KwFKidnpXvgxrVYgO9z": {
+        "name": "Eveline Klaffs",
+        "timezone_gmt_offset": -3,
+        ...
+    },
+    "-KwFKidh4OKGlt8nak4A": {
+        "name": "Robbert Ridger",
+        "timezone_gmt_offset": 0,
+        ...
+    },
+    "-KwFKidms27MFp6xZ6HV": {
+        "name": "Tiphany Broader",
+        "timezone_gmt_offset": 1,
+        ...
+    },
+    "-KwFKidwW6ZCE7Yebfpj": {
+        "name": "Tabbie Borg",
+        "timezone_gmt_offset": 2,
+        ...
+    }
 }
 ```
 
@@ -94,21 +96,35 @@ snapshot.forEach(function(child) {
 });
 ```
 
-After getting the results, we cut of the last item and present the N items in the view, which is 4 in this example.
+After getting the results, we cut off the last item and present the N items in the view, which is 4 in our example.
 
 ```
 Umeko Piche (GMT-4)
 Eveline Klaffs (GMT-3)
-Robbert Ridger (GMT0)
-Tiphany Broader (GMT1)
+Robbert Ridger (GMT+0)
+Tiphany Broader (GMT+1)
 ```
 
-When the user initiates loading of another page, we would query for another N+1 items starting with the last item from the previous page. We would use `startAt` in a combination with `limitToFirst` to define the items range for the second page. The limit of the Firebase Database here is that for the `startAt` method you can only use the value of the property specified in the `orderByChild`. The problem we face now is that the value of `timezone_gmt_offset` is not unique across the agents. And we can't use a value that multiple items share to specify the starting item of the next page.
+When the user initiates loading of another page, we would query for another N+1 items starting with the last item from the previous page. We would use `startAt` in a combination with `limitToFirst` to define the items range for the second page. The limit of the Firebase Database here is that for the `startAt` method you can only use the value of the property specified in the `orderByChild`. The problem we face now is that the value of `timezone_gmt_offset` is not unique across the agents. And we can't use a value shared by multiple items to specify the starting item of the next page.
 
-To address this issue we are going to create a unique property to order by and name it `_sort_timezone_gmt_offset`? We create a custom property made out of timezone_gmt_offset and the id. That will be unique
+To address this issue we are going to create a new property with a unique value for each item. We will name it `_sort_timezone_gmt_offset` and its value will be derived from the `timezone_gmt_offset` property value and the item key:
 
-`_sort_gmt_diff: getCharForTranslatedGmtDiff(timezone.gmt_diff) + "_" + newItemKey,`
+```javascript
+var refPath = "/agents"
+var updates = {}
+firebase.database()
+        .ref(refPath)
+        .once("value")
+        .then(function(snapshot) {
+            snapshot.forEach(function(child) {
+                var agent = child.val()
+                updates["/" + child.key + "/_sort_timezone_gmt_offset"] = agent.timezone_gmt_offset + "_" + child.key
+            });
+            firebase.database().ref(refPath).update(updates);
+        })
+```
 
+Now we can use the newly added property to order agents by.
 
 ```javascript
 firebase.database()
@@ -118,80 +134,264 @@ firebase.database()
         .once("value")
         .then(function(snapshot){ ... })
 ```
-`query code and result`
+
+And here is the result we get.
+
 ```json
 {
-"-KwFKidnpXvgxrVYgO9z":{"_sort_timezone_gmt_offset":"-3_-KwFKidnpXvgxrVYgO9z","name":"Eveline Klaffs","timezone_gmt_offset":-3,"timezone_id":"America/Sao_Paulo"}
-"-KwFKidp8zEQH7yOT-nI":{"_sort_timezone_gmt_offset":"-4_-KwFKidp8zEQH7yOT-nI","name":"Umeko Piche","timezone_gmt_offset":-4,"timezone_id":"America/Toronto"}
-"-KwFKidh4OKGlt8nak4A":{"_sort_timezone_gmt_offset":"0_-KwFKidh4OKGlt8nak4A","name":"Robbert Ridger","timezone_gmt_offset":0,"timezone_id":"Africa/Abidjan"}
-"-KwFKiduM8A7hD-xAeyW":{"_sort_timezone_gmt_offset":"10_-KwFKiduM8A7hD-xAeyW","name":"Johnathan Mandry","timezone_gmt_offset":10,"timezone_id":"Australia/Currie"}
-"-KwFKie-IJCovyOTklNg":{"_sort_timezone_gmt_offset":"12_-KwFKie-IJCovyOTklNg","name":"Finn Kleiser","timezone_gmt_offset":12,"timezone_id":"Pacific/Fiji"}
+    "-KwFKidnpXvgxrVYgO9z": {
+        "_sort_timezone_gmt_offset": "-3_-KwFKidnpXvgxrVYgO9z",
+        "name": "Eveline Klaffs",
+        "timezone_gmt_offset": -3,
+        ...
+    },
+    "-KwFKidp8zEQH7yOT-nI": {
+        "_sort_timezone_gmt_offset": "-4_-KwFKidp8zEQH7yOT-nI",
+        "name": "Umeko Piche",
+        "timezone_gmt_offset": -4,
+        ...
+    },
+    "-KwFKidh4OKGlt8nak4A": {
+        "_sort_timezone_gmt_offset": "0_-KwFKidh4OKGlt8nak4A",
+        "name": "Robbert Ridger",
+        "timezone_gmt_offset": 0,
+        ...
+    },
+    "-KwFKiduM8A7hD-xAeyW": {
+        "_sort_timezone_gmt_offset": "10_-KwFKiduM8A7hD-xAeyW",
+        "name": "Johnathan Mandry",
+        "timezone_gmt_offset": 10,
+        ...
+    },
+    "-KwFKie-IJCovyOTklNg": {
+        "_sort_timezone_gmt_offset": "12_-KwFKie-IJCovyOTklNg",
+        "name": "Finn Kleiser",
+        "timezone_gmt_offset": 12,
+        ...
+    }
 }
 ```
 
+It looks like now there is something wrong with the sorting. Agent with a time 3 hours behind the GMT comes before an agent with a time 4 hours behind the GMT. Agents that are 10 and 12 hours ahead of GMT come before an agent who is only 1 hour ahead. What gives?
 
+The value of the property by which the items are sorted is not a number anymore but a string. String values are sorted lexicographically. To fix the sorting, we need to figure out how to populate the `_sort_timezone_gmt_offset` property so that the values can be sorted lexicographically but follow the order of the numeric offset values.
 
-But now there is something wrong with the sorting. It's not sorted numerically anymore, but alphabetically. And that's not the ordering we want anymore.
-
-The way to go around it is to make the timezone_gmt_offset value into a value that can be sorted alphabetically. Something like this:
+Since the offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets) we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
 
 ```javascript
-function getCharForTranslatedGmtDiff(gmt_diff) {
-    var translatedGmtDiff = gmt_diff + 12
-    return String.fromCharCode(65 + translatedGmtDiff)
+function getCharTimezoneForGmtOffset(timezoneGmtOffset) {
+    var shiftedOffset = timezoneGmtOffset + 12
+    return String.fromCharCode(65 + shiftedOffset)
+}
+
+var refPath = "/agents"
+var updates = {}
+firebase.database()
+        .ref(refPath)
+        .once("value")
+        .then(function(snapshot) {
+            snapshot.forEach(function(child) {
+                var agent = child.val()
+                updates["/" + child.key + "/_sort_timezone_gmt_offset"] =
+                    getCharTimezoneForGmtOffset(agent.timezone_gmt_offset) + "_" + child.key
+            });
+            firebase.database().ref(refPath).update(updates);
+        })
+```
+
+Now we can repeat the previous query
+
+```javascript
+firebase.database()
+        .ref("/agents")
+        .orderByChild('_sort_timezone_gmt_offset')
+        .limitToFirst(5)
+        .once("value")
+        .then(function(snapshot){ ... })
+```
+
+And we will get expected results
+
+```json
+{
+    "-KwFKidp8zEQH7yOT-nI": {
+        "_sort_timezone_gmt_offset": "I_-KwFKidp8zEQH7yOT-nI",
+        "name": "Umeko Piche",
+        "timezone_gmt_offset": -4,
+        ...
+    },
+    "-KwFKidnpXvgxrVYgO9z": {
+        "_sort_timezone_gmt_offset": "J_-KwFKidnpXvgxrVYgO9z",
+        "name": "Eveline Klaffs",
+        "timezone_gmt_offset": -3,
+        ...
+    },
+    "-KwFKidh4OKGlt8nak4A": {
+        "_sort_timezone_gmt_offset": "M_-KwFKidh4OKGlt8nak4A",
+        "name": "Robbert Ridger",
+        "timezone_gmt_offset": 0,
+        ...
+    },
+    "-KwFKidms27MFp6xZ6HV": {
+        "_sort_timezone_gmt_offset": "N_-KwFKidms27MFp6xZ6HV",
+        "name": "Tiphany Broader",
+        "timezone_gmt_offset": 1,
+        ...
+    },
+    "-KwFKidwW6ZCE7Yebfpj": {
+        "_sort_timezone_gmt_offset": "O_-KwFKidwW6ZCE7Yebfpj",
+        "name": "Tabbie Borg",
+        "timezone_gmt_offset": 2,
+        ...
+    }
 }
 ```
 
-This allows us to sort the agents list by the timezone_gmt_offset and paginate it in the same time.
+As we've done before, we cut of the last item and present the first 4.
 
-Now let's also say that the requirements state that the user can search the agents by their name. For the advanced searching capabilities, we would need to use a third party service with a full-text search engine. But assuming the requirements would be satisfied with a search that supports only "starts-with" approach and that the search results do not need to be sorted by the timezone, we can fullfil the requirements by using only the Firebase Realtime Database querying API.
+```
+Umeko Piche (GMT-4)
+Eveline Klaffs (GMT-3)
+Robbert Ridger (GMT+0)
+Tiphany Broader (GMT+1)
+```
 
-It's not possible to query by multiple property values at the same time. Since the agents are searched by their name, we need to use the name property Instead of by 'timezone_gmt_offset'. That will result with the list being sorted by the name. So how do we filter the results by the entered search query? We query the list to start with the name that matches the query and to end with the name that matches the query appended with an alphabetically high unicode character. I found this technique on [stackoverflow](https://stackoverflow.com/a/40633692/517865) and here is how it looks like:
+When the user initiates the loading of the next page, we use the `_sort_timezone_gmt_offset` property value of the 5th item from the results of the previous query. We pass it as an argument to `startAt` to specify the first item of the next page.
+
+
+```
+firebase.database()
+        .ref("/agents")
+        .orderByChild('_sort_timezone_gmt_offset')
+        .limitToFirst(5)
+        .startAt("O_-KwFKidwW6ZCE7Yebfpj")
+        .once("value")
+        .then(function(snapshot){ ... })
+```
+
+And we recieve the next 5 items
+
+```json
+{
+    "-KwFKidwW6ZCE7Yebfpj": {
+        "_sort_timezone_gmt_offset": "O_-KwFKidwW6ZCE7Yebfpj",
+        "name": "Tabbie Borg",
+        "timezone_gmt_offset": 2,
+        ...
+    },
+    "-KwFKidzCclEjyI0PHPe": {
+        "_sort_timezone_gmt_offset": "O_-KwFKidzCclEjyI0PHPe",
+        "name": "Pietra Mathiassen",
+        "timezone_gmt_offset": 2,
+        ...
+    },
+    "-KwFKidy9F4Kh4Wc3Zr9": {
+        "_sort_timezone_gmt_offset": "P_-KwFKidy9F4Kh4Wc3Zr9",
+        "name": "Beatriz Martynka",
+        "timezone_gmt_offset": 3,
+        ...
+    },
+    "-KwFKidtvrB7_hdcKDrw": {
+        "_sort_timezone_gmt_offset": "R_-KwFKidtvrB7_hdcKDrw",
+        "name": "Antonina Swinley",
+        "timezone_gmt_offset": 5,
+        ...
+    },
+    "-KwFKidqxtQfK1llcgSY": {
+        "_sort_timezone_gmt_offset": "S_-KwFKidqxtQfK1llcgSY",
+        "name": "Grady Spencley",
+        "timezone_gmt_offset": 6,
+        ...
+    }
+}
+```
+
+After cutting of the last item, we present the 4 items on the next page:
+
+```
+Tabbie Borg (GMT+2)
+Pietra Mathiassen (GMT+2)
+Beatriz Martynka (GMT+3)
+Antonina Swinley (GMT+5)
+```
+
+As the user scrolls through the list, we repeat the process until the number of received items is smaller than the number of items requested, which is 5 in our example. At that point we have reached the last page.
+
+
+Filtering
+---------
+
+Let's also say that the requirements state that the user can search the agents by their name.
+
+For the advanced filtering capabilities, we would need to use a third party service with a full-text search engine. But assuming the requirements would be satisfied with a filter that supports only "starts-with" strategy and that the filtering results do not need to be sorted by the timezone offset, we can fulfill the requirements by using only the Firebase Realtime Database querying API.
+
+It's not possible to query by multiple property values at the same time. Since the agents are filtered by their name, we need to use the value of the `name` property instead of the `timezone_gmt_offset` property. That will result with the list being sorted by the name.
+
+So how do we filter the results by the entered query string?
+
+We query the list to start with the name that matches the query string and to end with the name that matches the query string appended with an alphabetically high unicode character. I found this technique on [stackoverflow](https://stackoverflow.com/a/40633692/517865) and here is how to use it:
 
 ```javascript
-var queryText = "Na"
+var queryText = "T"
 firebase.database().ref(refPath)
     .orderByChild('_sort_name')
     .startAt(queryText)
     .endAt(queryText+"\uf8ff")
-    .limitToFirst(6)
+    .limitToFirst(5)
         .once("value").then(print_timezones_by_name)
 ```
 
 The results are:
 
-```javascript
-
+```json
+{
+    "-KwFKidwW6ZCE7Yebfpj":
+    {
+        "_sort_name": "Tabbie Borg_-KwFKidwW6ZCE7Yebfpj",
+        "name": "Tabbie Borg",
+        "timezone_gmt_offset": 2,
+        ...
+    },
+    "-KwFKidms27MFp6xZ6HV":
+    {
+        "_sort_name": "Tiphany Broader_-KwFKidms27MFp6xZ6HV",
+        "name": "Tiphany Broader",
+        "timezone_gmt_offset": 1,
+        ...
+    }
+}
 ```
 
+Notice that I didn't use the `name` property to order by. Instead I introduced another property named `_sort_name` which is derived from the `name` property value and the item key, similarly to the `_sort_timezone_gmt_offset` property.
 
 
+```javascript
+function update_agents_with_name_sort() {
+    var refPath = "/agents"
+    var updates = {}
+    firebase.database().ref(refPath)
+        .once("value").then(function(snapshot) {
+            snapshot.forEach(function(child) {
+                var agent = child.val()
+                updates["/" + child.key + "/_sort_name"] = agent.name + "_" + child.key
+            });
+            firebase.database().ref(refPath).update(updates);
+        })
+}
+```
+
+And the reason is the same as before. To be able to paginate the filtered results, the values of the property you order by must be unique. And the `name` property is not guaranteed to be unique.
 
 
+Summary
+-------
 
+To implement a cursor based pagination on a sorted object list in the Realtime Firebase Database, usually you will have to create an additional property in the object that is derived from the property you want to sort by and the object's key. That is because the property by which you sort the list needs to have a unique value.
 
-
-
-To create a serial queue, normally you would write something simple like this:
-
-`let queue = DispatchQueue(label: “com.mydomain.myqueue")`
-
-If you wanted to define a priority for that queue, you could have done that by [retrieving a global queue of the required priority and setting it as a target](http://stackoverflow.com/a/17690878/517865). But that’s the old way to do it and [it doesn’t work in Swift 3](https://bugs.swift.org/browse/SR-1859).
-Since Swift 3, once a dispatch queue is activated, it cannot be mutated anymore. Setting a target on an activated queue will compile but then throw an error in run time.
-
-Fortunately, `DispatchQueue` initializer accepts other arguments besides `label` and one of them is `qos`.
-
-`let queue = DispatchQueue(label: "com.mydomain.myqueue", qos: .background)`
-
-Although [Apple documentation](https://developer.apple.com/reference/dispatch/dispatchqueue) states this initializer is available on iOS 10+, I’ve tested it and it also works on iOS 9.
-
-If for whatever reason, you still need to set the target on an already created queue, you can do that by using the `initiallyInactive` attribute available since iOS 10:
-
-`let queue = DispatchQueue(label: “com.mydomain.myqueue”, attributes: [.initiallyInactive])`
-
-That will allow you to modify it until you activate it.
+Filtering the objet list with a query string is possible, but only with a "starts-with" approach. If you want to sort the filtered results which are also paginated, it is only possible to sort them by the same property filtering is done on.
 
 References
 ----------
-* [http://devstreaming.apple.com/videos/wwdc/2016/720w6g8t9zhd23va0ai/720/720_concurrent_programming_with_gcd_in_swift_3.pdf](http://devstreaming.apple.com/videos/wwdc/2016/720w6g8t9zhd23va0ai/720/720_concurrent_programming_with_gcd_in_swift_3.pdf)
-* [https://developer.apple.com/videos/play/wwdc2016/720/](https://developer.apple.com/videos/play/wwdc2016/720/)
+* [https://firebase.google.com/docs/database/](https://firebase.google.com/docs/database/)
+* [https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d)
+* [https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca)
