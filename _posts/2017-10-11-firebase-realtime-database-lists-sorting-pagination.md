@@ -118,7 +118,8 @@ firebase.database()
         .then(function(snapshot) {
             snapshot.forEach(function(child) {
                 var agent = child.val()
-                updates["/" + child.key + "/_sort_timezone_gmt_offset"] = agent.timezone_gmt_offset + "_" + child.key
+                updates["/" + child.key + "/_sort_timezone_gmt_offset"] =
+                    agent.timezone_gmt_offset + "_" + child.key
             });
             firebase.database().ref(refPath).update(updates);
         })
@@ -172,11 +173,11 @@ And here is the result we get.
 }
 ```
 
-It looks like now there is something wrong with the sorting. Agent with a time 3 hours behind the GMT comes before an agent with a time 4 hours behind the GMT. Agents that are 10 and 12 hours ahead of GMT come before an agent who is only 1 hour ahead. What gives?
+It looks like there is something wrong with the sorting. Agent with a time 3 hours behind the GMT comes before an agent with a time 4 hours behind the GMT. Agents that are 10 and 12 hours ahead of GMT come before an agent who is only 1 hour ahead. That doesn't make sense. Or does it?
 
 The value of the property by which the items are sorted is not a number anymore but a string. String values are sorted lexicographically. To fix the sorting, we need to figure out how to populate the `_sort_timezone_gmt_offset` property so that the values can be sorted lexicographically but follow the order of the numeric offset values.
 
-Since the offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets) we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
+Since the GMT offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets) we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
 
 ```javascript
 function getCharTimezoneForGmtOffset(timezoneGmtOffset) {
@@ -247,7 +248,7 @@ And we will get expected results
 }
 ```
 
-As we've done before, we cut of the last item and present the first 4.
+As we've done before, we cut off the last item and present the first 4.
 
 ```
 Umeko Piche (GMT-4)
@@ -306,7 +307,7 @@ And we recieve the next 5 items
 }
 ```
 
-After cutting of the last item, we present the 4 items on the next page:
+After cutting off the last item, we present the 4 items on the next page:
 
 ```
 Tabbie Borg (GMT+2)
@@ -323,13 +324,13 @@ Filtering
 
 Let's also say that the requirements state that the user can search the agents by their name.
 
-For the advanced filtering capabilities, we would need to use a third party service with a full-text search engine. But assuming the requirements would be satisfied with a filter that supports only "starts-with" strategy and that the filtering results do not need to be sorted by the timezone offset, we can fulfill the requirements by using only the Firebase Realtime Database querying API.
+For the advanced filtering capabilities, we would need to use a third party service with a full-text search engine. But assuming the requirements would be satisfied with a filter that supports only "starts-with" strategy and that the filtering results do not need to be sorted by the timezone GMT offset, we can fulfill the requirements by using only the Firebase Realtime Database querying API.
 
-It's not possible to query by multiple property values at the same time. Since the agents are filtered by their name, we need to use the value of the `name` property instead of the `timezone_gmt_offset` property. That will result with the list being sorted by the name.
+Filtering can be achieved by using the `startAt` and `endAt` methods which affect the results depending by the property used in the `orderByChild` method. Since the agents are filtered by their name, we need to use the value of the `name` property instead of the `timezone_gmt_offset` property. As a result, the list will be filtered and sorted by the `name` property.
 
 So how do we filter the results by the entered query string?
 
-We query the list to start with the name that matches the query string and to end with the name that matches the query string appended with an alphabetically high unicode character. I found this technique on [stackoverflow](https://stackoverflow.com/a/40633692/517865) and here is how to use it:
+We look for the items in the list greater than or equal to the query string and also less than or equal to the query string appended with an alphabetically high unicode character. I found this technique on [stackoverflow](https://stackoverflow.com/a/40633692/517865) and here is how to use it:
 
 ```javascript
 var queryText = "T"
@@ -341,7 +342,7 @@ firebase.database().ref(refPath)
         .once("value").then(print_timezones_by_name)
 ```
 
-The results are:
+The results of this query are:
 
 ```json
 {
@@ -362,7 +363,7 @@ The results are:
 }
 ```
 
-Notice that I didn't use the `name` property to order by. Instead I introduced another property named `_sort_name` which is derived from the `name` property value and the item key, similarly to the `_sort_timezone_gmt_offset` property.
+Notice that we didn't use the `name` property to order by. Instead we introduced another property named `_sort_name` which is derived from the `name` property value and the item key, similarly to the `_sort_timezone_gmt_offset` property.
 
 
 ```javascript
