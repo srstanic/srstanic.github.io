@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "[firebase] How to paginate and filter sorted lists in the firebase realtime database?"
+title:  "[firebase] How to sort, filter and paginate lists in the Firebase Realtime Database?"
 categories: firebase database
 ---
 
-Let's say you are building an app for the secret service. One of the requirements is to have a list of agents sorted by the timezone they are currently operating in. So you might have a list of agent objects in the Firebase Database:
+Let's say you are building an app for the secret service. One of the requirements is to have a list of agents sorted by the timezone they are currently operating in. Here is how a list of agent objects might be defined in the Firebase Realtime Database:
 
 ```json
 {
@@ -41,14 +41,14 @@ Out of the box, Firebase Realtime Database offers a couple of ways to sort and p
 Pagination
 ----------
 
-Now, let's assume that for the efficiency reasons we decided to implement the cursor based pagination. Here is how we would go about implementing it.
+Now, let's assume that for the efficiency reasons we decided to implement the cursor based pagination. Here is how we will go about implementing it.
 
-We would use `orderByChild` to specify the sorting and the `timezone_gmt_offset` property to sort the agents by the timezone they are operating in. To limit the results to a desired page size, we would use `limitToFirst`. When retrieving a first page, we would get N+1 items, where N is the size of the page. For our examples, we will make the page size to be 4. That means we want to retrieve 5 items:
+We will use the `orderByChild()` method to specify the sorting and the `timezone_gmt_offset` property to sort the agents by the timezone they are operating in. To limit the results to the desired page size, we will use the `limitToFirst()` method. When retrieving data for one page, we will get N+1 items, where N is the size of the page. In our examples, we will make the page size to be 4 and for each page we will retrieve 5 items:
 
 ```javascript
 firebase.database()
         .ref("/agents")
-        .orderByChild('timezone_gmt_offset')
+        .orderByChild("timezone_gmt_offset")
         .limitToFirst(5)
         .once("value")
         .then(function(snapshot){ ... })
@@ -86,7 +86,7 @@ A resulting snapshot might look like the following JSON snippet:
 }
 ```
 
-Notice that the items are sorted numerically from the smallest to the largest number. When handling the snapshot though, you need to be aware that you have received a JSON object and if you try to iterate over its keys, thew will not be sorted as you would expect. Here is the code that will maintain the proper sorting:
+Notice that the items are sorted numerically from the smallest to the largest GMT offset. When handling the snapshot though, you need to be aware that you have received a JSON object and if you try to iterate over its keys, they will not be sorted as you would expect. Here is the code that will maintain the proper sorting:
 
 ```javascript
 snapshot.forEach(function(child) {
@@ -105,17 +105,19 @@ Robbert Ridger (GMT+0)
 Tiphany Broader (GMT+1)
 ```
 
-When the user initiates loading of another page, we would query for another N+1 items starting with the last item from the previous page. We would use `startAt` in a combination with `limitToFirst` to define the items range for the second page. The limit of the Firebase Database here is that for the `startAt` method you can only use the value of the property specified in the `orderByChild`. The problem we face now is that the value of `timezone_gmt_offset` is not unique across the agents. And we can't use a value shared by multiple items to specify the starting item of the next page.
+When the user initiates loading of another page, we will query for another N+1 items starting with the last item from the previous page. We will use the `startAt()` method in a combination with the `limitToFirst()` method to define the items range for the second page. The limit of the Firebase Database here is that for the `startAt()` method you can only use the value of the property specified in the `orderByChild()` method.
 
-To address this issue we are going to create a new property with a unique value for each item. We will name it `_sort_timezone_gmt_offset` and its value will be derived from the `timezone_gmt_offset` property value and the item key:
+The problem we face now is that the value of the `timezone_gmt_offset` property is not unique across the agents. And we can't use a value shared by multiple items to specify the starting item of the next page.
+
+To address this issue we are going to create a new property with a unique value for each item. We will name it `_sort_timezone_gmt_offset` and its value will be derived from the `timezone_gmt_offset` property value and the object key:
 
 ```javascript
 var refPath = "/agents"
-var updates = {}
 firebase.database()
         .ref(refPath)
         .once("value")
         .then(function(snapshot) {
+            var updates = {}
             snapshot.forEach(function(child) {
                 var agent = child.val()
                 updates["/" + child.key + "/_sort_timezone_gmt_offset"] =
@@ -130,7 +132,7 @@ Now we can use the newly added property to order agents by.
 ```javascript
 firebase.database()
         .ref("/agents")
-        .orderByChild('_sort_timezone_gmt_offset')
+        .orderByChild("_sort_timezone_gmt_offset")
         .limitToFirst(5)
         .once("value")
         .then(function(snapshot){ ... })
@@ -173,9 +175,11 @@ And here is the result we get.
 }
 ```
 
-It looks like there is something wrong with the sorting. Agent with a time 3 hours behind the GMT comes before an agent with a time 4 hours behind the GMT. Agents that are 10 and 12 hours ahead of GMT come before an agent who is only 1 hour ahead. That doesn't make sense. Or does it?
+It looks like there is something wrong with the sorting. An agent who is 3 hours behind the GMT comes before an agent who is 4 hours behind the GMT. Agents who are 10 and 12 hours ahead of GMT come before an agent who is only 1 hour ahead. That doesn't make sense. Or does it?
 
-The value of the property by which the items are sorted is not a number anymore but a string. String values are sorted lexicographically. To fix the sorting, we need to figure out how to populate the `_sort_timezone_gmt_offset` property so that the values can be sorted lexicographically but follow the order of the numeric offset values.
+The value of the property by which the items are sorted is not a number anymore but a string. String values are sorted lexicographically. That's why "-3" comes before "-4" and "10" comes before "1_".
+
+To fix the sorting, we need to figure out how to populate the `_sort_timezone_gmt_offset` property so that the values can be sorted lexicographically but follow the order of the numeric GMT offset values.
 
 Since the GMT offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets) we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
 
@@ -186,11 +190,11 @@ function getCharTimezoneForGmtOffset(timezoneGmtOffset) {
 }
 
 var refPath = "/agents"
-var updates = {}
 firebase.database()
         .ref(refPath)
         .once("value")
         .then(function(snapshot) {
+            var updates = {}
             snapshot.forEach(function(child) {
                 var agent = child.val()
                 updates["/" + child.key + "/_sort_timezone_gmt_offset"] =
@@ -205,7 +209,7 @@ Now we can repeat the previous query
 ```javascript
 firebase.database()
         .ref("/agents")
-        .orderByChild('_sort_timezone_gmt_offset')
+        .orderByChild("_sort_timezone_gmt_offset")
         .limitToFirst(5)
         .once("value")
         .then(function(snapshot){ ... })
@@ -257,13 +261,13 @@ Robbert Ridger (GMT+0)
 Tiphany Broader (GMT+1)
 ```
 
-When the user initiates the loading of the next page, we use the `_sort_timezone_gmt_offset` property value of the 5th item from the results of the previous query. We pass it as an argument to `startAt` to specify the first item of the next page.
+When the user initiates the loading of the next page, we use the `_sort_timezone_gmt_offset` property value of the 5th item from the results of the previous query. We pass it as an argument to `startAt()` to specify the first item of the next page.
 
 
-```
+```javascript
 firebase.database()
         .ref("/agents")
-        .orderByChild('_sort_timezone_gmt_offset')
+        .orderByChild("_sort_timezone_gmt_offset")
         .limitToFirst(5)
         .startAt("O_-KwFKidwW6ZCE7Yebfpj")
         .once("value")
@@ -316,30 +320,36 @@ Beatriz Martynka (GMT+3)
 Antonina Swinley (GMT+5)
 ```
 
-As the user scrolls through the list, we repeat the process until the number of received items is smaller than the number of items requested, which is 5 in our example. At that point we have reached the last page.
+As the user scrolls through the list, we repeat the process until the number of received items is smaller than the number of items requested, which is 5 in our example. At that point, we have reached the last page.
 
 
 Filtering
 ---------
 
-Let's also say that the requirements state that the user can search the agents by their name.
+Let's also say that the requirements state that the user can search for the agents by their name.
 
-For the advanced filtering capabilities, we would need to use a third party service with a full-text search engine. But assuming the requirements would be satisfied with a filter that supports only "starts-with" strategy and that the filtering results do not need to be sorted by the timezone GMT offset, we can fulfill the requirements by using only the Firebase Realtime Database querying API.
+For the advanced search capabilities, we would need to use a third party service with a full-text search engine. But assuming the requirements will be satisfied with a search that supports only "starts-with" strategy and that the search results do not need to be sorted by the timezone GMT offset, we can fulfill the requirements by using only the Firebase Realtime Database querying API.
 
-Filtering can be achieved by using the `startAt` and `endAt` methods which affect the results depending by the property used in the `orderByChild` method. Since the agents are filtered by their name, we need to use the value of the `name` property instead of the `timezone_gmt_offset` property. As a result, the list will be filtered and sorted by the `name` property.
+We can filter the list with `startAt()` and `endAt()` methods which affect the results depending on the property used in the `orderByChild()` method. Since the agents are filtered by their name, we need to use the value of the `name` property to order by instead of the `timezone_gmt_offset` property. As a result, the list will be filtered and sorted by the `name` property.
 
 So how do we filter the results by the entered query string?
 
-We look for the items in the list greater than or equal to the query string and also less than or equal to the query string appended with an alphabetically high unicode character. I found this technique on [stackoverflow](https://stackoverflow.com/a/40633692/517865) and here is how to use it:
+We look for the items in the list that are:
+* greater than or equal to the query string
+* AND
+* less than or equal to the query string appended with a Unicode character that is very high when ordered lexicographically.
+I found this technique on [StackOverflow](https://stackoverflow.com/a/40633692/517865) and here is how to use it:
 
 ```javascript
 var queryText = "T"
-firebase.database().ref(refPath)
-    .orderByChild('_sort_name')
-    .startAt(queryText)
-    .endAt(queryText+"\uf8ff")
-    .limitToFirst(5)
-        .once("value").then(print_timezones_by_name)
+firebase.database()
+        .ref("/agents")
+        .orderByChild("_sort_name")
+        .startAt(queryText)
+        .endAt(queryText + "\uf8ff")
+        .limitToFirst(5)
+        .once("value")
+        .then(function(snapshot){ ... })
 ```
 
 The results of this query are:
@@ -363,33 +373,48 @@ The results of this query are:
 }
 ```
 
-Notice that we didn't use the `name` property to order by. Instead we introduced another property named `_sort_name` which is derived from the `name` property value and the item key, similarly to the `_sort_timezone_gmt_offset` property.
+Notice that we didn't use the `name` property to order by. Instead we introduced another property named `_sort_name` which is derived from the `name` property value and the object key, similarly to the `_sort_timezone_gmt_offset` property.
 
 
 ```javascript
-function update_agents_with_name_sort() {
-    var refPath = "/agents"
-    var updates = {}
-    firebase.database().ref(refPath)
-        .once("value").then(function(snapshot) {
+var refPath = "/agents"
+firebase.database()
+        .ref(refPath)
+        .once("value")
+        .then(function(snapshot) {
+            var updates = {}
             snapshot.forEach(function(child) {
                 var agent = child.val()
-                updates["/" + child.key + "/_sort_name"] = agent.name + "_" + child.key
+                updates["/" + child.key + "/_sort_name"] =
+                    agent.name + "_" + child.key
             });
             firebase.database().ref(refPath).update(updates);
         })
-}
 ```
 
 And the reason is the same as before. To be able to paginate the filtered results, the values of the property you order by must be unique. And the `name` property is not guaranteed to be unique.
+
+In our example, there aren't enough results to show the second page, but if there were, retrieving the next page would require a little change in the code. Instead of passing `queryText` to the `startAt()` method, we would pass the value of the `_sort_name` property of the item cut off from the previous page. That item is the first item on the next page.
+
+```javascript
+var queryText = "T"
+firebase.database()
+        .ref("/agents")
+        .orderByChild("_sort_name")
+        .startAt(cutOffItem._sort_name)
+        .endAt(queryText + "\uf8ff")
+        .limitToFirst(5)
+        .once("value")
+        .then(function(snapshot){ ... })
+```
 
 
 Summary
 -------
 
-To implement a cursor based pagination on a sorted object list in the Realtime Firebase Database, usually you will have to create an additional property in the object that is derived from the property you want to sort by and the object's key. That is because the property by which you sort the list needs to have a unique value.
+If you want to have a cursor based pagination in a list sorted by the value of one of the object properties, you will probably need to create an additional property in the object. The vale of that property should be derived from the value of the property you want to sort by and the object key. The reason is that the property by which you sort the paginated list needs to have a unique value.
 
-Filtering the objet list with a query string is possible, but only with a "starts-with" approach. If you want to sort the filtered results which are also paginated, it is only possible to sort them by the same property filtering is done on.
+If you want to filter the object list with a query string matching the value of one of the object properties, it is possible, but only with a "starts-with" approach. When filtering the object list, the ordering must be done by the same property as filtering is done by.
 
 References
 ----------
