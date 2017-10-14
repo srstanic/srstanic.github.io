@@ -138,7 +138,7 @@ firebase.database()
         .then(function(snapshot){ ... })
 ```
 
-And here is the result we get.
+And here are the results for the given query:
 
 ```json
 {
@@ -181,7 +181,7 @@ The value of the property by which the items are sorted is not a number anymore 
 
 To fix the sorting, we need to figure out how to populate the `_sort_timezone_gmt_offset` property so that the values can be sorted lexicographically but follow the order of the numeric GMT offset values.
 
-Since the GMT offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets) we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
+Since the GMT offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets), we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
 
 ```javascript
 function getCharTimezoneForGmtOffset(timezoneGmtOffset) {
@@ -252,7 +252,7 @@ And we will get expected results
 }
 ```
 
-As we've done before, we cut off the last item and present the first 4.
+As we've done before, we cut off the last item and present the first 4 items.
 
 ```
 Umeko Piche (GMT-4)
@@ -412,7 +412,7 @@ firebase.database()
 Summary
 -------
 
-If you want to have a cursor based pagination in a list sorted by the value of one of the object properties, you will probably need to create an additional property in the object. The vale of that property should be derived from the value of the property you want to sort by and the object key. The reason is that the property by which you sort the paginated list needs to have a unique value.
+If you want to have a cursor based pagination in a list sorted by the value of one of the object properties, you will probably need to create an additional property in the object. The value of that property should be derived from the value of the property you want to sort by and the object key. The reason is that the property by which you sort the paginated list needs to have a unique value.
 
 If you want to filter the object list with a query string matching the value of one of the object properties, it is possible, but only with a "starts-with" approach. When filtering the object list, the ordering must be done by the same property as filtering is done by.
 
