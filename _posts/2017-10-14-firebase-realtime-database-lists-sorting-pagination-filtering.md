@@ -35,14 +35,14 @@ Let's say you are building an app for the secret service. One of the requirement
 
 Each agent object has a property named `timezone_gmt_offset` with a signed number value representing the GMT offset.
 
-Out of the box, Firebase Realtime Database offers a couple of ways to sort and paginate object lists. These [two](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d) [articles](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca) cover the basics of querying and pagination pretty well. I suggest you go read them if you are just starting out with the Firebase Realtime Database and then come back.
+Out of the box, Firebase Realtime Database offers a couple of ways to sort and paginate object lists. These [two](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d){:target="_blank"}<!-- markup clean_ --> [articles](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca){:target="_blank"}<!-- markup clean_ --> cover the basics of querying and pagination pretty well. I suggest you go read them if you are just starting out with the Firebase Realtime Database and then come back.
 
 Pagination
 ----------
 
 Now, let's assume that for the efficiency reasons we decided to implement the cursor based pagination. Here is how we will go about implementing it.
 
-We will use the `orderByChild()` method to specify the sorting and the `timezone_gmt_offset` property to sort the agents by the timezone they are operating in. To limit the results to the desired page size, we will use the `limitToFirst()` method. When retrieving data for one page, we will get N+1 items, where N is the size of the page. In our examples, we will make the page size to be 4 and for each page we will retrieve 5 items:
+We will use the `orderByChild()` method to specify the sorting and the `timezone_gmt_offset` property to sort the agents by the timezone they are operating in. To limit the results to the desired page size, we will use the `limitToFirst()` method. When retrieving data for one page, we will get N+1 items, where N is the size of the page. That additional item we retrieve is used as a cursor for the next page. In our examples, we will make the page size to be 4 and for each page we will retrieve 5 items:
 
 ```javascript
 firebase.database()
@@ -180,7 +180,7 @@ The value of the property by which the items are sorted is not a number anymore 
 
 To fix the sorting, we need to figure out how to populate the `_sort_timezone_gmt_offset` property so that the values can be sorted lexicographically but follow the order of the numeric GMT offset values.
 
-Since the GMT offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets), we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
+Since the GMT offset values range from [-12 to 14](https://en.wikipedia.org/wiki/List_of_UTC_time_offsets){:target="_blank"}<!-- markup clean_ -->, we can transform each offset value into a character and use it to populate the `_sort_timezone_gmt_offset` property:
 
 ```javascript
 function getCharTimezoneForGmtOffset(timezoneGmtOffset) {
@@ -337,7 +337,7 @@ We look for the items in the list that are:
 * greater than or equal to the query string
 * AND
 * less than or equal to the query string appended with a Unicode character that is very high when ordered lexicographically.
-I found this technique on [StackOverflow](https://stackoverflow.com/a/40633692/517865) and here is how to use it:
+I found this technique on [StackOverflow](https://stackoverflow.com/a/40633692/517865){:target="_blank"}<!-- markup clean_ --> and here is how to use it:
 
 ```javascript
 var queryText = "T"
@@ -415,8 +415,12 @@ If you want to have a cursor based pagination in a list sorted by the value of o
 
 If you want to filter the object list with a query string matching the value of one of the object properties, it is possible, but only with a "starts-with" approach. When filtering the object list, the ordering must be done by the same property as filtering is done by.
 
+
+_Thanks to [Miran Brajša](https://www.toptal.com/resume/miran-brajsa){:target="_blank"}<!-- markup clean_ --> for reviewing this post._
+
+
 References
 ----------
-* [https://firebase.google.com/docs/database/](https://firebase.google.com/docs/database/)
-* [https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d)
-* [https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca)
+* [https://firebase.google.com/docs/database/](https://firebase.google.com/docs/database/){:target="_blank"}
+* [https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d](https://howtofirebase.com/collection-queries-with-firebase-b95a0193745d){:target="_blank"}
+* [https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca](https://howtofirebase.com/firebase-data-structures-pagination-96c16ffdb5ca){:target="_blank"}

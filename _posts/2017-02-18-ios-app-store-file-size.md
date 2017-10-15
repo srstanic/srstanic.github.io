@@ -26,4 +26,4 @@ In my case, the App Store submission .ipa is 184MB and the thinned .ipa is 10MB.
 
 References
 ----------
-* https://developer.apple.com/library/content/qa/qa1795/_index.html
+* [https://developer.apple.com/library/content/qa/qa1795/_index.html](https://developer.apple.com/library/content/qa/qa1795/_index.html){:target="_blank"}
