@@ -1,5 +1,5 @@
 # srstanic.github.io
-My software development blog
+Notes on software development
 
 Built on top of:
 https://heiswayi.github.io/textlog/
