@@ -43,6 +43,12 @@
     .site-intro {
         font-size: 1.1rem;
     }
+
+    h1 {
+        a:hover {
+            text-decoration: none;
+        }
+    }
 }
 
 .smallcap {
@@ -50,12 +56,6 @@
     //font-variant: small-caps;
     font-size: 1.5rem;
     font-weight: bold;
-
-    h1 {
-        a:hover {
-            text-decoration: none;
-        }
-    }
 
     a, a:hover {
         text-decoration: none;
